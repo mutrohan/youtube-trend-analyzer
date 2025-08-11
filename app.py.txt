@@ -1,73 +1,51 @@
 import streamlit as st
 import pandas as pd
 from googleapiclient.discovery import build
-from datetime import datetime, timedelta
 
-st.title("YouTube Trend Analyzer")
+# -------------------------------
+# YouTube API ayarları
+# -------------------------------
+API_KEY = "AIzaSyD41hzgDZmBCD5L11K63_rcuI7c___fTss"
+API_SERVICE_NAME = "youtube"
+API_VERSION = "v3"
 
-api_key = st.text_input("YouTube API Key", type="password")
-query = st.text_input("Aramak istediğiniz konu")
-min_views = st.number_input("Minimum görüntülenme sayısı", value=500000, step=10000)
-days = st.slider("Son kaç gün içinde?", 1, 60, 30)
+# YouTube API servisini başlat
+youtube = build(API_SERVICE_NAME, API_VERSION, developerKey=API_KEY)
 
-def iso8601_days_ago(days):
-    dt = datetime.utcnow() - timedelta(days=days)
-    return dt.isoformat("T") + "Z"
+# -------------------------------
+# Streamlit arayüz
+# -------------------------------
+st.set_page_config(page_title="YouTube Trend Analizi", page_icon="📊", layout="wide")
+st.title("📊 YouTube Trend Analizi")
 
-def get_videos(api_key, query, min_views, days):
-    youtube = build("youtube", "v3", developerKey=api_key)
-    published_after = iso8601_days_ago(days)
+# Kullanıcıdan arama kelimesi al
+query = st.text_input("Arama terimi gir:", value="python tutorial")
 
-    # Video arama
-    search_response = youtube.search().list(
+# Videoları çek
+if st.button("Ara"):
+    request = youtube.search().list(
         q=query,
-        part="id,snippet",
+        part="snippet",
         type="video",
         order="viewCount",
-        publishedAfter=published_after,
-        maxResults=50
-    ).execute()
+        maxResults=10
+    )
+    response = request.execute()
 
+    # Sonuçları DataFrame'e dönüştür
     videos = []
-    video_ids = [item["id"]["videoId"] for item in search_response.get("items", [])]
+    for item in response.get("items", []):
+        videos.append({
+            "Başlık": item["snippet"]["title"],
+            "Kanal": item["snippet"]["channelTitle"],
+            "Yayın Tarihi": item["snippet"]["publishedAt"],
+            "Video Linki": f"https://www.youtube.com/watch?v={item['id']['videoId']}"
+        })
 
-    # Video detaylarını al
-    if not video_ids:
-        return []
+    df = pd.DataFrame(videos)
+    st.dataframe(df)
 
-    videos_response = youtube.videos().list(
-        part="snippet,statistics",
-        id=",".join(video_ids),
-        maxResults=50
-    ).execute()
+    # İndirme butonu
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button("📥 CSV olarak indir", csv, "youtube_trends.csv", "text/csv")
 
-    for item in videos_response.get("items", []):
-        stats = item.get("statistics", {})
-        view_count = int(stats.get("viewCount", 0))
-        if view_count >= min_views:
-            videos.append({
-                "Video Başlığı": item["snippet"].get("title", ""),
-                "Kanal": item["snippet"].get("channelTitle", ""),
-                "Yayın Tarihi": item["snippet"].get("publishedAt", ""),
-                "Görüntülenme": view_count,
-                "Beğeni": int(stats.get("likeCount", 0)),
-                "Açıklama": item["snippet"].get("description", ""),
-                "Etiketler": ", ".join(item["snippet"].get("tags", [])),
-                "Video URL": f"https://www.youtube.com/watch?v={item['id']}"
-            })
-
-    return videos
-
-if st.button("Analizi Başlat"):
-    if not api_key or not query:
-        st.error("Lütfen API anahtarını ve konuyu gir.")
-    else:
-        with st.spinner("Veriler çekiliyor..."):
-            results = get_videos(api_key, query, min_views, days)
-            if not results:
-                st.warning("Veri bulunamadı veya kriterlere uyan video yok.")
-            else:
-                df = pd.DataFrame(results)
-                st.dataframe(df)
-                csv = df.to_csv(index=False).encode("utf-8")
-                st.download_button("📥 CSV olarak indir", csv, "youtube_trend.csv", "text/csv")
