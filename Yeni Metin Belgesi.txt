@@ -1,0 +1,50 @@
+import streamlit as st
+import requests
+
+st.set_page_config(page_title="YouTube SEO Araçları", page_icon="📊", layout="wide")
+
+tab1, tab2 = st.tabs(["📊 YouTube Trend Analizi", "🤖 AI Destekli Başlık/Açıklama/Etiket"])
+
+# -------------------------------
+# Sekme 1: Trend Analizi
+# -------------------------------
+with tab1:
+    st.title("📊 YouTube Trend Analizi")
+    query = st.text_input("Arama terimi gir:", value="python tutorial")
+
+    if st.button("Ara", key="ara1"):
+        # API anahtarı kullanmadan benim sunucumdan veri çek
+        url = "https://mutrohan-api-example.com/youtube_trends"
+        params = {"query": query}
+        response = requests.get(url, params=params)
+
+        if response.status_code == 200:
+            data = response.json()
+            st.dataframe(data)
+        else:
+            st.error("Trend verileri alınamadı, lütfen tekrar deneyin.")
+
+# -------------------------------
+# Sekme 2: AI Destekli SEO
+# -------------------------------
+with tab2:
+    st.title("🤖 AI Destekli YouTube SEO Önerici")
+    konu = st.text_input("Video konusunu gir:", value="Python ile Yapay Zeka")
+
+    if st.button("Önerileri Oluştur", key="oner1"):
+        url = "https://mutrohan-api-example.com/youtube_seo"
+        params = {"topic": konu}
+        response = requests.get(url, params=params)
+
+        if response.status_code == 200:
+            data = response.json()
+            st.subheader("📌 Başlık")
+            st.write(data["title"])
+
+            st.subheader("📝 Açıklama")
+            st.write(data["description"])
+
+            st.subheader("🏷️ Etiketler")
+            st.write(", ".join(data["tags"]))
+        else:
+            st.error("Öneriler alınamadı, lütfen tekrar deneyin.")
