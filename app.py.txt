@@ -5,7 +5,7 @@ from googleapiclient.discovery import build
 # -------------------------------
 # YouTube API ayarları
 # -------------------------------
-API_KEY = "AIzaSyD41hzgDZmBCD5L11K63_rcuI7c___fTss"
+API_KEY = 
 API_SERVICE_NAME = "youtube"
 API_VERSION = "v3"
 
@@ -48,4 +48,5 @@ if st.button("Ara"):
     # İndirme butonu
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button("📥 CSV olarak indir", csv, "youtube_trends.csv", "text/csv")
+
 
